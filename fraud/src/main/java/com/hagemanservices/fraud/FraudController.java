@@ -1,5 +1,7 @@
 package com.hagemanservices.fraud;
 
+import com.hagemanservices.clients.fraud.FraudCheckResponse;
+import com.hagemanservices.clients.fraud.FraudClient;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -7,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/fraud-check")
 @Slf4j
-public class FraudController {
+public class FraudController implements FraudClient {
     private final FraudCheckService fraudCheckService;
 
     @GetMapping(path = "{customerId}")
