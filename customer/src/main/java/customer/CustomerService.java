@@ -1,5 +1,6 @@
 package customer;
 
+import com.hagemanservices.amqp.RabbitMQMessageProducer;
 import com.hagemanservices.clients.fraud.FraudCheckResponse;
 import com.hagemanservices.clients.fraud.FraudClient;
 import com.hagemanservices.clients.notification.NotificationClient;
@@ -12,11 +13,10 @@ import java.time.LocalDateTime;
 
 @AllArgsConstructor
 @Service
-@Slf4j
 public class CustomerService {
     private final CustomerRepository customerRepository;
-    private final NotificationClient notificationClient;
     private final FraudClient fraudClient;
+    private final RabbitMQMessageProducer rabbitMQMessageProducer;
     public void registerCustomer(CustomerRegistrationRequest request) {
         Customer customer = Customer.builder()
                 .firstName(request.firstName())
@@ -26,12 +26,16 @@ public class CustomerService {
         customerRepository.saveAndFlush(customer);
 
         FraudCheckResponse fraudCheckResponse = fraudClient.isFraudster(customer.getId());
-        notificationClient.CreateNoti(
-                new NotificationRequest(customer.getId(), LocalDateTime.now(), "Hello "+ customer.getFirstName(), customer.getEmail())
-        );
 
         if(fraudCheckResponse != null && fraudCheckResponse.isFraudster()) {
             throw new IllegalStateException("fraudster");
         }
+        NotificationRequest notificationRequest = new NotificationRequest(customer.getId(), LocalDateTime.now(), "Hello "+ customer.getFirstName(), customer.getEmail());
+        rabbitMQMessageProducer.publish(
+                notificationRequest,
+                "internal.exchange",
+                "internal.notification.routing-key"
+        );
+
     }
 }
